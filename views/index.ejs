@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+  <style>
+    body {
+      background-color: darkslategray;
+    }
+
+    .read-more {
+      color: blue;
+      cursor: pointer;
+    }
+    
+  </style>
+  <script src="jquery-3.7.1.min.js"></script>
+</head>
+
+<body>
+  <%- include(`./partials/navbar`) %>
+
+
+    <% if (Object.keys(books).length===0) { %>
+
+      <%- include(`./partials/nobooks`) %>
+        <% } else { %>
+          <main class="container d-flex r flex-wrap w-100" >
+            <% books.forEach(book => { %>
+              <div class="card m-3 col-md-3" style="width: 18rem; height: fit-content;">
+                <img src="/<%= book.Image %>" alt="Book Photo" class="card-img-top w-100 p-2 h-50 border rounded">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <%= book.Title %>
+                  </h5>
+                  <p class="card-text text-muted">Author: <%= book.Author %></p>
+                  <p class="card-text description small" style="max-height: 100px; overflow: hidden; transition: max-height 0.5s ease;">
+                    <%= book.Description %>
+                  </p>
+                  <a href="#" class="read-more small" onclick="toggleDescription(event, this)">...Show More</a>
+                  <% if (book.Description.length > 100) { %>
+                    <p class="full-description collapse small" style="transition: max-height 0.5s ease;">
+                      <%= book.Description %>
+                    </p>
+                  <% } %>
+                  <div class="d-flex justify-content-between mt-2">
+                    <button class="btn btn-primary" onclick="editBook(`<%= book.Id %>`)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-danger" onclick="deleteBook(`<%= book.Id %>`)"><i class="bi bi-trash"></i></button>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </main>
+
+
+
+
+          <div class="modal fade" id="bookModal" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="bookModalLabel">Edit Book</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="closeModal()"></button>
+                </div>
+                <div class="modal-body">
+                  <form id="bookForm">
+                    <input type="hidden" id="bookId">
+                    <img src="" alt="Image" id="bookImage" class="card-img-top w-100 p-2 h-50 border rounded">
+                    <div class="mb-3">
+                      <label for="title" class="form-label">Title</label>
+                      <input type="text" class="form-control" id="title" placeholder="Enter title" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="author" class="form-label">Author</label>
+                      <input type="text" class="form-control" id="author" placeholder="Enter author" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="description" class="form-label">Description</label>
+                      <textarea class="form-control " id="description" rows="3" placeholder="Enter description"
+                        required></textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label for="image" class="form-label">Image</label>
+                      <input type="file" class="form-control" id="image" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="bookModal"
+                    onclick="closeModal()">Close</button>
+                  <button type="submit" class="btn btn-primary" onclick="saveChanges(event)">Save changes</button>
+                </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+
+          <% } %>
+
+
+            <script>
+              const modal = new bootstrap.Modal(document.getElementById('bookModal'));
+              function toggleDescription(e, element) {
+                e.preventDefault();
+                var description = $(element).prev('.description');
+                var fullDescription = $(element).next('.full-description');
+                description.toggleClass('collapse');
+                fullDescription.toggleClass('collapse');
+                if (description.hasClass('collapse')) {
+                  $(element).text('...Show Less');
+                } else {
+                  $(element).text('...Show More');
+                }
+              }
+
+              function closeModal() {
+                modal.hide()
+              }
+
+              function deleteBook(id) {
+                fetch('/books/' + id, {
+                  method: 'DELETE',
+                }).then(Response => {
+                  if (res.ok) {
+
+                  }
+                }).catch(err => {
+                  console.log(err);
+                })
+                window.location.reload()
+              }
+
+
+              function editBook(id) {
+
+
+                var book = {};
+                fetch('/books/' + id)
+                  .then(res => res.json())
+                  .then(data => {
+                    book = data
+                  }).catch(err => {
+                    console.log(err);
+                  })
+
+                setTimeout(() => {
+
+                  document.getElementById('bookImage').src = book.Image;
+                  document.getElementById('bookId').value = book.Id;
+                  document.getElementById('title').value = book.Title;
+                  document.getElementById('author').value = book.Author;
+                  document.getElementById('description').value = book.Description;
+                  modal.show();
+                }, 50)
+
+              }
+
+              function saveChanges(e) {
+                e.preventDefault();
+                if (!confirm('Are you sure you want to save changes?')) {
+                  return
+                }
+                let form = document.getElementById('bookForm');
+                if (!form.checkValidity()) {
+                  form.classList.add('was-validated')
+                  form.reportValidity()
+                  return;
+                }
+                let title = document.getElementById('title').value;
+                let author = document.getElementById('author').value;
+                let description = document.getElementById('description').value;
+                let image = document.getElementById('image').files[0];
+                let id = document.getElementById('bookId').value;
+
+                let formData = new FormData();
+                formData.append('image', image);
+                formData.append('title', title);
+                formData.append('author', author);
+                formData.append('description', description);
+
+                formData.forEach((value, key) => {
+                  console.log(key, value)
+                })
+                fetch('/books/' + id, {
+                  method: 'PUT',
+                  body: formData,
+                  headers: { // The header is www-form-urlencoded instead of json
+                    //'Content-Type': 'multipart/form-data '
+                  }
+
+                }).then(res => {
+                  if (res.ok) {
+                    console.log('success')
+                  }
+
+                }).catch(err => {
+                  console.log(err);
+                })
+                window.location.reload()
+              }
+            </script>
+
+</body>
+
+</html>
